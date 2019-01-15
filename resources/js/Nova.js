@@ -6,6 +6,7 @@ import axios from '@/util/axios'
 import PortalVue from 'portal-vue'
 import Loading from '@/components/Loading'
 import AsyncComputed from 'vue-async-computed'
+import resources from '@/store/resources'
 
 Vue.use(PortalVue)
 Vue.use(AsyncComputed)
@@ -36,9 +37,17 @@ export default class Nova {
      * Execute all of the booting callbacks.
      */
     boot() {
-        this.bootingCallbacks.forEach(callback => callback(Vue, router))
-
+        this.bootingCallbacks.forEach(callback => callback(Vue, router, store))
         this.bootingCallbacks = []
+    }
+
+    /**
+     * Register the built-in Vuex modules for each resource
+     */
+    registerStoreModules() {
+        this.config.resources.forEach(resource => {
+            store.registerModule(resource.uriKey, resources)
+        })
     }
 
     /**
@@ -49,6 +58,7 @@ export default class Nova {
         let _this = this
 
         this.boot()
+        this.registerStoreModules()
 
         this.app = new Vue({
             el: '#nova',
@@ -103,5 +113,12 @@ export default class Nova {
      */
     $emit(...args) {
         this.bus.$emit(...args)
+    }
+
+    /**
+     * Determine if Nova is missing the requested resource with the given uri key
+     */
+    missingResource(uriKey) {
+        return _.find(this.config.resources, r => r.uriKey == uriKey) == undefined
     }
 }
